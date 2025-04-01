@@ -8,11 +8,11 @@ export default function Navbar({ isAuthenticated = false, user = null }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   return (
-    <nav className="bg-white shadow-sm fixed w-full z-10">
+    <nav className="bg-white shadow-sm fixed w-full z-50">
       <div className="container mx-auto px-6 py-3">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center">
+            <Link href="/" className="flex items-center relative z-10">
               <Image 
                 src="/resolve logo.png" 
                 alt="Resolve Logo" 
@@ -36,6 +36,9 @@ export default function Navbar({ isAuthenticated = false, user = null }) {
                 </Link>
                 <Link href="/rewards" className="text-gray-700 hover:text-[#3c6d71] font-medium">
                   Rewards
+                </Link>
+                <Link href="/streaks" className="text-gray-700 hover:text-[#3c6d71] font-medium">
+                  Streaks
                 </Link>
               </div>
             )}
@@ -89,8 +92,8 @@ export default function Navbar({ isAuthenticated = false, user = null }) {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
-                <Link href="/signin" className="text-gray-700 hover:text-[#3c6d71] font-medium">
+              <div className="flex items-center space-x-4 relative z-10">
+                <Link href="/signin" className="text-gray-700 hover:text-[#3c6d71] font-medium px-3 py-2">
                   Sign in
                 </Link>
                 <Link href="/signup" className="bg-[#3c6d71] text-white px-4 py-2 rounded-lg hover:bg-[#3c6d71]/90 transition-colors">
@@ -142,7 +145,18 @@ export default function Navbar({ isAuthenticated = false, user = null }) {
             </div>
           </div>
         )}
+        {isMenuOpen && !isAuthenticated && (
+          <div className="md:hidden mt-4 pb-3 border-t border-gray-100 relative z-10">
+            <div className="pt-2 space-y-1">
+              <Link href="/signin" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+                Sign in
+              </Link>
+              <Link href="/signup" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md font-medium">
+                Sign up
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
-  );
-}
+  )}

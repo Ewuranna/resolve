@@ -21,7 +21,12 @@ function HabitFormWithSearchParams() {
     frequency: 'daily',
     days: [0, 1, 2, 3, 4, 5, 6], // Default to all days selected
     goal_id: goalId || '',
-    target_value: 1
+    target_value: 1,
+    target_unit: '',
+    custom_frequency: {
+      interval: 1,
+      period: 'days'
+    }
   });
 
   // Rest of your component logic here
@@ -117,19 +122,31 @@ function HabitFormWithSearchParams() {
         throw new Error('No active session');
       }
       
+      // Prepare the habit data based on frequency type
+      const habitData = {
+        name: formData.name,
+        description: formData.description,
+        frequency: formData.frequency,
+        user_id: session.user.id,
+        goal_id: formData.goal_id || null,
+        target_value: formData.target_value || 1,
+        unit: formData.target_unit || '', // Changed from target_unit to unit
+        created_at: new Date().toISOString()
+      };
+      
+      // Add frequency-specific data
+      if (formData.frequency === 'weekly') {
+        habitData.frequency_data = { days: formData.days };
+      } else if (formData.frequency === 'monthly') {
+        habitData.frequency_data = { day: formData.monthlyDay || 1 };
+      } else if (formData.frequency === 'custom') {
+        habitData.frequency_data = formData.custom_frequency;
+      }
+      
       // Create the habit
       const { data: habit, error } = await supabase
         .from('habits')
-        .insert({
-          name: formData.name,
-          description: formData.description,
-          frequency: formData.frequency,
-          days: formData.frequency === 'weekly' ? formData.days : null,
-          user_id: session.user.id,
-          goal_id: formData.goal_id || null,
-          target_value: formData.target_value || 1,
-          created_at: new Date().toISOString()
-        })
+        .insert(habitData)
         .select()
         .single();
         
@@ -214,31 +231,19 @@ function HabitFormWithSearchParams() {
             </div>
             
             <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Frequency</label>
-              <div className="flex space-x-4">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="frequency"
-                    value="daily"
-                    checked={formData.frequency === 'daily'}
-                    onChange={handleChange}
-                    className="form-radio text-[#3c6d71] focus:ring-[#3c6d71]"
-                  />
-                  <span className="ml-2">Daily</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="frequency"
-                    value="weekly"
-                    checked={formData.frequency === 'weekly'}
-                    onChange={handleChange}
-                    className="form-radio text-[#3c6d71] focus:ring-[#3c6d71]"
-                  />
-                  <span className="ml-2">Specific Days</span>
-                </label>
-              </div>
+              <label htmlFor="frequency" className="block text-gray-700 font-medium mb-2">Frequency</label>
+              <select
+                id="frequency"
+                name="frequency"
+                value={formData.frequency}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3c6d71] focus:border-[#3c6d71] outline-none transition-colors"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="custom">Custom</option>
+              </select>
             </div>
             
             {formData.frequency === 'weekly' && (
@@ -263,26 +268,95 @@ function HabitFormWithSearchParams() {
               </div>
             )}
             
+            {formData.frequency === 'monthly' && (
+              <div className="mb-6">
+                <label htmlFor="monthlyDay" className="block text-gray-700 font-medium mb-2">Day of Month</label>
+                <select
+                  id="monthlyDay"
+                  name="monthlyDay"
+                  value={formData.monthlyDay || 1}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3c6d71] focus:border-[#3c6d71] outline-none transition-colors"
+                >
+                  {[...Array(31)].map((_, i) => (
+                    <option key={i} value={i + 1}>
+                      {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {formData.frequency === 'custom' && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <label className="block text-gray-700 font-medium mb-2">Custom Frequency</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Every</span>
+                  <input
+                    type="number"
+                    name="custom_frequency.interval"
+                    value={formData.custom_frequency.interval}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      custom_frequency: {
+                        ...formData.custom_frequency,
+                        interval: parseInt(e.target.value) || 1
+                      }
+                    })}
+                    min="1"
+                    className="w-16 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3c6d71] focus:border-[#3c6d71] outline-none transition-colors"
+                  />
+                  <select
+                    name="custom_frequency.period"
+                    value={formData.custom_frequency.period}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      custom_frequency: {
+                        ...formData.custom_frequency,
+                        period: e.target.value
+                      }
+                    })}
+                    className="px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3c6d71] focus:border-[#3c6d71] outline-none transition-colors"
+                  >
+                    <option value="days">Days</option>
+                    <option value="weeks">Weeks</option>
+                    <option value="months">Months</option>
+                  </select>
+                </div>
+              </div>
+            )}
+            
             <div className="mb-6">
               <label htmlFor="target_value" className="block text-gray-700 font-medium mb-2">
-                Target Value (how many times per day)
+                Target Value
               </label>
-              <input
-                type="number"
-                id="target_value"
-                name="target_value"
-                value={formData.target_value}
-                onChange={handleChange}
-                min="1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3c6d71] focus:border-[#3c6d71] outline-none transition-colors"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  id="target_value"
+                  name="target_value"
+                  value={formData.target_value}
+                  onChange={handleChange}
+                  min="1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3c6d71] focus:border-[#3c6d71] outline-none transition-colors"
+                />
+                <input
+                  type="text"
+                  id="target_unit"
+                  name="target_unit"
+                  value={formData.target_unit}
+                  onChange={handleChange}
+                  placeholder="units (e.g., minutes, pages)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3c6d71] focus:border-[#3c6d71] outline-none transition-colors"
+                />
+              </div>
             </div>
             
             <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2 bg-[#3c6d71] text-white rounded-lg hover:bg-[#3c6d71]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 bg-[#3c6d71] text-white rounded-lg hover:bg-[#3c6d71]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover-lift"
               >
                 {submitting ? 'Creating...' : 'Create Habit'}
               </button>
@@ -297,7 +371,7 @@ function HabitFormWithSearchParams() {
 // Main component that wraps the form with Suspense
 export default function NewHabitPage() {
   return (
-    <div className="min-h-screen bg-gray-50 font-['Quicksand']">
+    <div className="min-h-screen bg-gray-50 font-quicksand">
       <Navbar isAuthenticated={true} />
       
       {/* Add padding to account for fixed navbar */}
